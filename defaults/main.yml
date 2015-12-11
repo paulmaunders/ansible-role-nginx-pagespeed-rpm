@@ -1,0 +1,8 @@
+---
+# defaults file for ansible-role-nginx-pagespeed
+nps_version: 1.9.32.10
+nginx_src_rpm_url: http://nginx.org/packages/rhel/7/SRPMS/nginx-1.8.0-1.el7.ngx.src.rpm
+build_usr: builder
+build_dir: ~{{build_usr}}
+nps_release: release-{{nps_version}}-beta
+nps_src_bundle: ngx_pagespeed-release-{{nps_release}}.tar.gz

@@ -1,0 +1,20 @@
+---
+- name: Download PageSpeed
+  get_url: url=https://github.com/pagespeed/ngx_pagespeed/archive/{{nps_release}}.zip dest={{build_dir}}/{{nps_release}}.zip
+  register: get_pagespeed
+
+# Fails with permission error when using /root, possibly due to Ansible 1.9.x bug https://github.com/ansible/ansible-modules-core/issues/932
+- name: Unarchive PageSpeed
+  unarchive: src={{build_dir}}/{{nps_release}}.zip dest={{build_dir}} copy=no
+  when: get_pagespeed.changed
+
+- name: Download PageSpeed Optimization Libraries
+  get_url: url=https://dl.google.com/dl/page-speed/psol/{{nps_version}}.tar.gz dest={{build_dir}}/{{nps_version}}.tar.gz
+  register: get_psol
+
+- name: Unarchive PSOL
+  unarchive: src={{build_dir}}/{{nps_version}}.tar.gz dest={{build_dir}}/ngx_pagespeed-{{nps_release}} copy=no
+  when: get_psol.changed
+
+- name: Archive PageSpeed and PSOL into a single tar file
+  command: creates={{build_dir}}/{{nps_src_bundle}} tar -zcvf {{build_dir}}/{{nps_src_bundle}} {{build_dir}}/ngx_pagespeed-{{nps_release}}

@@ -1,0 +1,33 @@
+---
+- name: Install nginx src RPM
+  command: creates="/root/rpmbuild" rpm -Uvh {{nginx_src_rpm_url}}
+
+- name: Copy nginx RPM src to build user home
+  command: creates="~{{build_usr}}/rpmbuild" cp --recursive /root/rpmbuild ~{{build_usr}}/
+
+- name: Ensure correct ownership of rpmbuild folder
+  file: path="~{{build_usr}}/rpmbuild" owner={{build_usr}} group={{build_usr}} recurse=yes
+
+- name: Copy Nginx PageSpeed tar bundle into rpmbuild SOURCE
+  command: creates="~{{build_usr}}/rpmbuild/{{nps_src_bundle}}" cp {{build_dir}}/{{nps_src_bundle}} ~{{build_usr}}/rpmbuild/{{nps_src_bundle}}
+
+- name: Ensure correct ownership of Nginx PageSpeed tar bundle
+  file: path="~{{build_usr}}/rpmbuild/{{nps_src_bundle}}" owner={{build_usr}} group={{build_usr}}
+
+- name: Insert pagespeed_version into nginx.spec file
+  lineinfile: 'dest="~{{build_usr}}/rpmbuild/SPECS/nginx.spec" regexp="^%define pagespeed_version" insertbefore="^Source0" line="%define pagespeed_version {{nps_release}}"'
+
+- name: Add link to pagespeed bundle source in nginx.spec file
+  lineinfile: 'dest="~{{build_usr}}/rpmbuild/SPECS/nginx.spec" regexp="^Source11" insertafter="^Source10" line="Source11: {{nps_src_bundle}}"'
+
+- name: Add tar command to nginx.spec file
+  lineinfile: 'dest="~{{build_usr}}/rpmbuild/SPECS/nginx.spec" regexp="^%{__tar} zxvf %{SOURCE11}" insertafter="^%setup -q" line="%{__tar} zxvf %{SOURCE11}"'
+
+- name: Add setup macro to nginx.spec file
+  lineinfile: 'dest="~{{build_usr}}/rpmbuild/SPECS/nginx.spec" regexp="^%setup -T -D -a 11" insertafter="^%{__tar} zxvf %{SOURCE11}" line="%setup -T -D -a 11"'
+
+# This partially works, but the last --add-module part only inserts one line when there are two places we need it to be added
+# We could use sed, perl, or consider using a template instead.
+
+- name: Add pagespeed module to configure options in nginx.spec file
+  lineinfile: 'dest="~{{build_usr}}/rpmbuild/SPECS/nginx.spec" regexp="--add-module=.*?pagespeed" insertafter="--with-cc-opt=" line="        --add-module=%{_builddir}/%{name}-%{version}/ngx_pagespeed-release-%{pagespeed_version} \x5C"'
